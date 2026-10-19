@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My JARVIS AI</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: #07111f; color: #e7f8ff;
+    font-family: Arial, sans-serif;
+  }
+  main { width: 100%; max-width: 460px; text-align: center; }
+  h1 { color: #53e5ff; letter-spacing: 5px; }
+  .orb {
+    width: 145px; height: 145px; border-radius: 50%;
+    margin: 30px auto; display: grid; place-items: center;
+    border: 2px solid #53e5ff;
+    box-shadow: 0 0 35px #1685b566, inset 0 0 25px #1685b544;
+    font-size: 48px;
+  }
+  .listening { animation: pulse 1s infinite alternate; }
+  @keyframes pulse {
+    to { box-shadow: 0 0 55px #53e5ff; }
+  }
+  button {
+    padding: 14px 20px; margin: 6px; border: 0;
+    border-radius: 12px; background: #53e5ff;
+    color: #07111f; font-weight: bold; font-size: 16px;
+  }
+  #status, #reply {
+    padding: 14px; margin-top: 14px; border-radius: 12px;
+    background: #122338; line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .hint { color: #9bb4c8; font-size: 14px; line-height: 1.8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>J.A.R.V.I.S</h1>
+  <p class="hint">YOUR PERSONAL VOICE ASSISTANT</p>
+  <div id="orb" class="orb">◉</div>
+  <button id="start">🎙 Start Listening</button>
+  <button id="stop">■ Stop</button>
+  <div id="status">System ready. Press Start Listening.</div>
+  <div id="reply">JARVIS: Hello! How can I help you?</div>
+  <p class="hint">
+    Try: "What time is it?"<br>
+    "Open YouTube"<br>
+    "Open Google"<br>
+    "Search for space science"<br>
+    "Who are you?"
+  </p>
+</main>
+
+<script>
+const statusBox = document.getElementById("status");
+const replyBox = document.getElementById("reply");
+const orb = document.getElementById("orb");
+
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let recognition;
+let listening = false;
+
+function speak(message) {
+  speechSynthesis.cancel();
+  replyBox.textContent = "JARVIS: " + message;
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = "en-US";
+  utterance.rate = 1;
+  speechSynthesis.speak(utterance);
+}
+
+function openWebsite(url) {
+  speak("Opening your requested website.");
+  window.open(url, "_blank");
+}
+
+function runCommand(text) {
+  const command = text.toLowerCase().trim();
+  statusBox.textContent = "You said: " + text;
+
+  if (command.includes("time")) {
+    speak("The time is " +
+      new Date().toLocaleTimeString([], {
+        hour: "numeric", minute: "2-digit"
+      }));
+  } else if (command.includes("date")) {
+    speak("Today is " +
+      new Date().toLocaleDateString("en-US", {
+        dateStyle: "full"
+      }));
+  } else if (command.includes("who are you") ||
+             command.includes("your name")) {
+    speak("I am JARVIS, your personal voice assistant.");
+  } else if (command.includes("open youtube")) {
+    openWebsite("https://m.youtube.com/");
+  } else if (command.includes("open google")) {
+    openWebsite("https://www.google.com/");
+  } else if (command.includes("open github")) {
+    openWebsite("https://github.com/");
+  } else if (command.startsWith("search for ")) {
+    const query = command.slice("search for ".length);
+    openWebsite(
+      "https://www.google.com/search?q=" +
+      encodeURIComponent(query)
+    );
+  } else if (command.includes("hello") ||
+             command.includes("hey jarvis")) {
+    speak("Hello! I am ready to help you.");
+  } else {
+    speak("I do not know that command yet. Try asking for the time, or ask me to open Google.");
+  }
+}
+
+document.getElementById("start").onclick = () => {
+  if (!SpeechRecognition) {
+    speak("Speech recognition is not supported in this browser. Try an updated version of Chrome.");
+    return;
+  }
+
+  if (!recognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.onstart = () => {
+      listening = true;
+      orb.classList.add("listening");
+      statusBox.textContent = "Listening... Speak now.";
+    };
+    recognition.onresult = event => {
+      runCommand(event.results[0][0].transcript);
+    };
+    recognition.onerror = event => {
+      statusBox.textContent = "Microphone error: " + event.error;
+    };
+    recognition.onend = () => {
+      listening = false;
+      orb.classList.remove("listening");
+    };
+  }
+
+  try {
+    recognition.start();
+  } catch (error) {
+    statusBox.textContent = "Please wait a moment, then try again.";
+  }
+};
+
+document.getElementById("stop").onclick = () => {
+  if (recognition && listening) recognition.stop();
+  speechSynthesis.cancel();
+  orb.classList.remove("listening");
+  statusBox.textContent = "Assistant stopped.";
+};
+</script>
+</body>
+</html>
